@@ -1,0 +1,1 @@
+INSERT INTO intervenant(id,nom,prenom,commune, codepostal) VALUES ('123456','DUPONT','Jean','Paris','75000');   
