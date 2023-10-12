@@ -4,18 +4,24 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
 import org.miage.intervenantservice.entity.Intervenant;
+import org.miage.intervenantservice.entity.IntervenantInput;
+import org.miage.intervenantservice.entity.IntervenantValidator;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
@@ -25,9 +31,11 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 public class IntervenantRepresentation {
 
     private final IntervenantResource ir;
+    private IntervenantValidator iv;
 
-    public IntervenantRepresentation(IntervenantResource ir) {
+    public IntervenantRepresentation(IntervenantResource ir, IntervenantValidator iv) {
         this.ir = ir;
+        this.iv = iv;
     }
 
     // GET http://localhost:8082/intervenants
@@ -47,7 +55,7 @@ public class IntervenantRepresentation {
 
     @PostMapping
     @Transactional
-    public ResponseEntity<?> postIntervenant(@RequestBody Intervenant intervenant) {
+    public ResponseEntity<?> postIntervenant(@RequestBody @Valid IntervenantInput intervenant) {
         Intervenant toSave = new Intervenant(UUID.randomUUID().toString(),
                 intervenant.getNom(),
                 intervenant.getPrenom(),
@@ -66,5 +74,46 @@ public class IntervenantRepresentation {
         return ResponseEntity.noContent().build();
     }
 
-    // PUT et PATCH: à faire pour la semaine prochaine
+    // PUT
+    @PutMapping(value = "/{intervenantId}")
+    @Transactional
+    public ResponseEntity<?> update(@PathVariable("intervenantId") String id,
+            @RequestBody @Valid IntervenantInput newIntervenant) {
+        if (!ir.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        Intervenant toSave = new Intervenant(id,
+                newIntervenant.getNom(),
+                newIntervenant.getPrenom(),
+                newIntervenant.getCommune(),
+                newIntervenant.getCodepostal());
+        ir.save(toSave);
+        return ResponseEntity.ok().build();
+    }
+
+    // PATCH: à faire pour la semaine prochaine
+    @PatchMapping(value = "/{intervenantId}")
+    @Transactional
+    public ResponseEntity<Object> partialUpdate(@PathVariable("intervenantId") String id,
+            @RequestBody @Valid IntervenantInput newIntervenant) {
+        Optional<Intervenant> body = ir.findById(id);
+        if (body.isPresent()) {
+            Intervenant existingIntervenant = body.get();
+            if (StringUtils.hasLength(newIntervenant.getNom())) {
+                existingIntervenant.setNom(newIntervenant.getNom());
+            }
+            if (StringUtils.hasLength(newIntervenant.getPrenom())) {
+                existingIntervenant.setPrenom(newIntervenant.getPrenom());
+            }
+            if (StringUtils.hasLength(newIntervenant.getCommune())) {
+                existingIntervenant.setCommune(newIntervenant.getCommune());
+            }
+            if (StringUtils.hasLength(newIntervenant.getCodepostal())) {
+                existingIntervenant.setCodepostal(newIntervenant.getCodepostal());
+            }
+            ir.save(existingIntervenant);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
 }
