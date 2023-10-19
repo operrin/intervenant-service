@@ -6,6 +6,7 @@ Pg avec docker
 -----
 Build image intervenant
 
+mvn -DskipTests clean package
 mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 docker build -t m2/intervenant-service:1.0 .
 
