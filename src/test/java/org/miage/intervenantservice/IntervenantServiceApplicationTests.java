@@ -70,6 +70,7 @@ public class IntervenantServiceApplicationTests {
 	void getNotFoundApi() {
 		// given - vide
 		// when
+		// then
 		when().get("/intervenants/150").then().statusCode(HttpStatus.SC_NOT_FOUND);
 	}
 

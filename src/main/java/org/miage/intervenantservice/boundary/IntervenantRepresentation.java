@@ -3,6 +3,7 @@ package org.miage.intervenantservice.boundary;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
+import org.miage.intervenantservice.control.IntervenantAssembler;
 import org.miage.intervenantservice.entity.Intervenant;
 import org.miage.intervenantservice.entity.IntervenantInput;
 import org.miage.intervenantservice.entity.IntervenantValidator;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
@@ -31,50 +31,45 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 public class IntervenantRepresentation {
 
     private final IntervenantResource ir;
-    private IntervenantValidator iv;
+    private final IntervenantAssembler ia;
+    private final IntervenantValidator iv;
 
-    public IntervenantRepresentation(IntervenantResource ir, IntervenantValidator iv) {
+    public IntervenantRepresentation(IntervenantResource ir, IntervenantValidator iv, IntervenantAssembler ia) {
         this.ir = ir;
+        this.ia = ia;
         this.iv = iv;
     }
 
-    // GET http://localhost:8082/intervenants
+    // GET all
     @GetMapping
     public ResponseEntity<?> getAllIntervenants() {
-        return ResponseEntity.ok(ir.findAll());
+        return ResponseEntity.ok(ia.toCollectionModel(ir.findAll()));
+        //return ResponseEntity.ok(ir.findAll());
     }
 
-    // GET one
+    // GET one intervenant
     @GetMapping(value = "/{intervenantId}")
     public ResponseEntity<?> getIntervenant(@PathVariable("intervenantId") String id) {
         return Optional.of(ir.findById(id))
                 .filter(Optional::isPresent)
-                .map(i -> ResponseEntity.ok(i.get()))
+                .map(i -> ResponseEntity.ok(ia.toModel(i.get())))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     @Transactional
-    public ResponseEntity<?> postIntervenant(@RequestBody @Valid IntervenantInput intervenant) {
+    public ResponseEntity<?> save(@RequestBody @Valid IntervenantInput intervenant) {
+        
         Intervenant toSave = new Intervenant(UUID.randomUUID().toString(),
                 intervenant.getNom(),
                 intervenant.getPrenom(),
                 intervenant.getCommune(),
                 intervenant.getCodepostal());
         Intervenant saved = ir.save(toSave);
-        URI uri = linkTo(IntervenantRepresentation.class).slash(saved.getId()).toUri();
-        return ResponseEntity.created(uri).build();
+        URI location = linkTo(IntervenantRepresentation.class).slash(saved.getId()).toUri();
+        return ResponseEntity.created(location).build();
     }
 
-    @DeleteMapping(value = "/{intervenantId}")
-    @Transactional
-    public ResponseEntity<?> delete(@PathVariable("intervenantId") String id) {
-        Optional<Intervenant> intervenant = ir.findById(id);
-        intervenant.ifPresent(ir::delete);
-        return ResponseEntity.noContent().build();
-    }
-
-    // PUT
     @PutMapping(value = "/{intervenantId}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable("intervenantId") String id,
@@ -91,11 +86,19 @@ public class IntervenantRepresentation {
         return ResponseEntity.ok().build();
     }
 
-    // PATCH: à faire pour la semaine prochaine
+    @DeleteMapping(value = "/{intervenantId}")
+    @Transactional
+    public ResponseEntity<?> delete(@PathVariable("intervenantId") String id) {
+        Optional<Intervenant> intervenant = ir.findById(id);
+        intervenant.ifPresent(ir::delete);
+        return ResponseEntity.noContent().build();
+    }
+
+    // PATCH
     @PatchMapping(value = "/{intervenantId}")
     @Transactional
     public ResponseEntity<Object> partialUpdate(@PathVariable("intervenantId") String id,
-            @RequestBody @Valid IntervenantInput newIntervenant) {
+            @RequestBody IntervenantInput newIntervenant) {
         Optional<Intervenant> body = ir.findById(id);
         if (body.isPresent()) {
             Intervenant existingIntervenant = body.get();
@@ -111,9 +114,14 @@ public class IntervenantRepresentation {
             if (StringUtils.hasLength(newIntervenant.getCodepostal())) {
                 existingIntervenant.setCodepostal(newIntervenant.getCodepostal());
             }
+            iv.validate(new IntervenantInput(existingIntervenant.getNom(),
+                    existingIntervenant.getPrenom(),
+                    existingIntervenant.getCommune(),
+                    existingIntervenant.getCodepostal()));
             ir.save(existingIntervenant);
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.notFound().build();
     }
+
 }
