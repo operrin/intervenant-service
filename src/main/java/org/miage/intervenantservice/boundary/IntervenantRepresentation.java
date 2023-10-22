@@ -1,6 +1,7 @@
 package org.miage.intervenantservice.boundary;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.miage.intervenantservice.control.IntervenantAssembler;
@@ -95,25 +96,51 @@ public class IntervenantRepresentation {
     }
 
     // PATCH
+    //@PatchMapping(value = "/{intervenantId}")
+    //@Transactional
+    //public ResponseEntity<Object> partialUpdate(@PathVariable("intervenantId") String id,
+    //        @RequestBody IntervenantInput newIntervenant) {
+    //    Optional<Intervenant> body = ir.findById(id);
+    //    if (body.isPresent()) {
+    //        Intervenant existingIntervenant = body.get();
+    //        if (StringUtils.hasLength(newIntervenant.getNom())) {
+    //            existingIntervenant.setNom(newIntervenant.getNom());
+    //        }
+    //        if (StringUtils.hasLength(newIntervenant.getPrenom())) {
+    //            existingIntervenant.setPrenom(newIntervenant.getPrenom());
+    //        }
+    //        if (StringUtils.hasLength(newIntervenant.getCommune())) {
+    //            existingIntervenant.setCommune(newIntervenant.getCommune());
+    //        }
+    //        if (StringUtils.hasLength(newIntervenant.getCodepostal())) {
+    //            existingIntervenant.setCodepostal(newIntervenant.getCodepostal());
+    //        }
+    //        iv.validate(new IntervenantInput(existingIntervenant.getNom(),
+    //                existingIntervenant.getPrenom(),
+    //                existingIntervenant.getCommune(),
+    //                existingIntervenant.getCodepostal()));
+    //        ir.save(existingIntervenant);
+    //        return ResponseEntity.ok().build();
+    //    }
+    //    return ResponseEntity.notFound().build();
+    //}
+
     @PatchMapping(value = "/{intervenantId}")
     @Transactional
     public ResponseEntity<Object> partialUpdate(@PathVariable("intervenantId") String id,
-            @RequestBody IntervenantInput newIntervenant) {
+                                                @RequestBody Map<String, Object> changes) {
         Optional<Intervenant> body = ir.findById(id);
         if (body.isPresent()) {
             Intervenant existingIntervenant = body.get();
-            if (StringUtils.hasLength(newIntervenant.getNom())) {
-                existingIntervenant.setNom(newIntervenant.getNom());
-            }
-            if (StringUtils.hasLength(newIntervenant.getPrenom())) {
-                existingIntervenant.setPrenom(newIntervenant.getPrenom());
-            }
-            if (StringUtils.hasLength(newIntervenant.getCommune())) {
-                existingIntervenant.setCommune(newIntervenant.getCommune());
-            }
-            if (StringUtils.hasLength(newIntervenant.getCodepostal())) {
-                existingIntervenant.setCodepostal(newIntervenant.getCodepostal());
-            }
+            changes.forEach(
+                    (attribute, value) -> {
+                        switch (attribute) {
+                            case "nom" -> existingIntervenant.setNom((String) value);
+                            case "prenom" -> existingIntervenant.setPrenom((String) value);
+                            case "commune"-> existingIntervenant.setCommune((String) value);
+                            case "codepostal" -> existingIntervenant.setCodepostal((String) value);
+                        }
+                    });
             iv.validate(new IntervenantInput(existingIntervenant.getNom(),
                     existingIntervenant.getPrenom(),
                     existingIntervenant.getCommune(),
@@ -123,5 +150,4 @@ public class IntervenantRepresentation {
         }
         return ResponseEntity.notFound().build();
     }
-
 }
