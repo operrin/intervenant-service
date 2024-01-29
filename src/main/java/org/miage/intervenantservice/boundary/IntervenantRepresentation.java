@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -18,8 +19,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.miage.intervenantservice.entity.Intervenant;
+import org.miage.intervenantservice.entity.IntervenantInput;
+import org.miage.intervenantservice.entity.IntervenantValidator;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,9 +34,11 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 public class IntervenantRepresentation {
 
     private final IntervenantRepository ir;
+    private final IntervenantValidator iv;
 
-    public IntervenantRepresentation(IntervenantRepository ir) {
+    public IntervenantRepresentation(IntervenantRepository ir, IntervenantValidator iv) {
         this.ir = ir;
+        this.iv = iv;
     }
 
     // @GetMapping
@@ -55,7 +59,7 @@ public class IntervenantRepresentation {
     // POST
     @PostMapping()
     @Transactional
-    public ResponseEntity<?> postIntervenant(@RequestBody Intervenant entity) {
+    public ResponseEntity<?> postIntervenant(@RequestBody @Valid IntervenantInput entity) {
         Intervenant toSave= new Intervenant(UUID.randomUUID().toString(),
                 entity.getNom(),
                 entity.getPrenom(),
@@ -70,7 +74,7 @@ public class IntervenantRepresentation {
     @PutMapping(value = "/{intervenantId}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable("intervenantId") String id,
-            @RequestBody Intervenant newIntervenant) {
+            @RequestBody @Valid IntervenantInput newIntervenant) {
 
         if (!ir.existsById(id)) {
             return ResponseEntity.notFound().build();
@@ -110,6 +114,10 @@ public class IntervenantRepresentation {
                     case "codepostal" -> existingIntervenant.setCodepostal((String) value);
                 }
             });
+            iv.validate(new IntervenantInput(existingIntervenant.getNom(),
+                existingIntervenant.getPrenom(),
+                existingIntervenant.getCommune(),
+                existingIntervenant.getCodepostal()));
             ir.save(existingIntervenant);
             return ResponseEntity.ok().build();
         }
