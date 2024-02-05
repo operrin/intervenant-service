@@ -1,5 +1,4 @@
-FROM amazoncorretto:21.0.2
+FROM eclipse-temurin:21.0.2_13-jre-alpine
 VOLUME /tmp
-ADD target/intervenant-service-1.0.jar intervenant-service.jar
-RUN bash -c 'touch /intervenant-service.jar'
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/intervenant-service.jar"]
+COPY target/intervenant-service-1.0.jar intervenant-service.jar
+ENTRYPOINT ["java", "-jar", "/intervenant-service.jar"]

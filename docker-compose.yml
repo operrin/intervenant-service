@@ -1,0 +1,35 @@
+services:
+
+  restservice:
+    image: m2/intervenant-service:1.0
+    ports:
+      - 8082:8082
+    networks:
+      - isolated_nw2
+    volumes:
+      - /tmp
+    container_name: restservice
+    depends_on:
+      - pgdb
+
+  pgdb:
+    image: postgres:16.0
+    ports:
+      - 5432:5432
+    networks:
+      - isolated_nw2
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+     POSTGRES_DB: postgres
+     POSTGRES_USER: postgres
+     POSTGRES_PASSWORD: riovas
+    container_name: postgres
+
+networks:
+  isolated_nw2:
+    driver: bridge
+
+volumes:
+  db-data:
+    driver: local
